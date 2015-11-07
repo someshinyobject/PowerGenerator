@@ -1,13 +1,45 @@
-#
-# This is a PowerShell Unit Test file.
-# You need a unit test framework such as Pester to run PowerShell Unit tests. 
-# You can download Pester from http://go.microsoft.com/fwlink/?LinkID=534084
-#
+$TemplateArray = @(
+    "Hello, my name is |_name_|",
+    "Hello, my name is |_ name _|",
+    "Hello, my name is |_name",
+    "Hello, my name is |_name_| and I have a pet |_pet_|"
+)
 
-Describe "Get-Function" {
-	Context "Function Exists" {
+$VariableNames = @("name", "name", @(), @("name","pet"))
+
+$Regex = @{
+    "TemplateVariable" = [regex]"\|_\s*([A-Za-z0-9_\-@$]*)\s*_\|"
+}
+
+Function Read-TemplateVariable {
+    [CmdletBinding()]
+    [Alias()]
+    Param (
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True, Position = 0)]
+        [Object]$Line
+    )
+    Begin {
+        $Captures = @()
+        $Matches = $Regex.TemplateVariable.Matches($Line)
+    }
+    Process {
+        ForEach ($Match in $Matches) {
+            $Captures += $Match.Groups[1].Value
+        }
+    }
+    End {
+        $Captures
+    }
+}
+
+
+Describe "Grab Templating Variable" {
+	Context "Grabs variable name |_variable_|" {
 		It "Should Return" {
-		
+            $Variables = $TemplateArray | ForEach-Object {
+                Read-TemplateVariable -Line $_
+            } 
+            $Variables | Should Be $VariableNames
 		}
 	}
 }
